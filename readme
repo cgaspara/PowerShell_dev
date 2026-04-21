@@ -1,0 +1,485 @@
+POWERSHELL CHEAT SHEET
+
+========================================
+1) CORE IDEA
+========================================
+- PowerShell works with OBJECTS, not plain text
+- Commands are called CMDLETS
+- Naming pattern: Verb-Noun
+  Example:
+    Get-Process
+    Get-Service
+    Get-ChildItem
+
+========================================
+2) GET HELP / LEARN COMMANDS
+========================================
+Get-Command
+Get-Help Get-Process
+Get-Help Get-Process -Examples
+Get-Member
+
+Examples:
+Get-Service | Get-Member
+Get-Command *process*
+Get-Help Get-Service -Full
+
+========================================
+3) VARIABLES
+========================================
+$name = "Craig"
+$number = 5
+$servers = "srv1","srv2","srv3"
+
+Show variable:
+$name
+
+String with variable:
+"Server name is $name"
+
+========================================
+4) ARRAYS
+========================================
+$servers = @("srv1","srv2","srv3")
+
+Get one item:
+$servers[0]
+
+Count:
+$servers.Count
+
+========================================
+5) HASH TABLES
+========================================
+$user = @{
+    Name = "Craig"
+    Role = "Engineer"
+    City = "Redondo Beach"
+}
+
+$user
+$user.Name
+
+========================================
+6) PIPELINE
+========================================
+- Pass output of one command into another
+
+Examples:
+Get-Process | Sort-Object CPU -Descending
+Get-Service | Where-Object { $_.Status -eq "Running" }
+Get-ChildItem | Select-Object Name, Length
+
+========================================
+7) SELECT / FILTER / SORT
+========================================
+Select-Object:
+Get-Process | Select-Object Name, Id, CPU
+
+Where-Object:
+Get-Service | Where-Object { $_.Status -eq "Running" }
+
+Sort-Object:
+Get-Process | Sort-Object CPU -Descending
+
+Measure-Object:
+Get-Process | Measure-Object
+Get-Process | Measure-Object CPU -Sum
+
+========================================
+8) $_  (CURRENT OBJECT)
+========================================
+- $_ means "the current item in the pipeline"
+
+Examples:
+Get-Service | Where-Object { $_.Status -eq "Running" }
+
+Get-Process | Select-Object Name, @{
+    Name="CPU_Hours"
+    Expression={ $_.CPU }
+}
+
+========================================
+9) LOOPS
+========================================
+foreach loop:
+$servers = @("srv1","srv2","srv3")
+
+foreach ($server in $servers) {
+    "Checking $server"
+}
+
+ForEach-Object in pipeline:
+$servers | ForEach-Object {
+    "Checking $_"
+}
+
+for loop:
+for ($i = 0; $i -lt 3; $i++) {
+    "Index is $i"
+}
+
+while loop:
+$count = 1
+while ($count -le 3) {
+    "Count = $count"
+    $count++
+}
+
+========================================
+10) IF / ELSE
+========================================
+$service = Get-Service -Name w32time
+
+if ($service.Status -eq "Running") {
+    "Service is running"
+}
+else {
+    "Service is not running"
+}
+
+========================================
+11) SWITCH
+========================================
+$envType = "prod"
+
+switch ($envType) {
+    "dev"  { "Development environment" }
+    "test" { "Test environment" }
+    "prod" { "Production environment" }
+    default { "Unknown environment" }
+}
+
+========================================
+12) FUNCTIONS
+========================================
+Simple function:
+function Get-Greeting {
+    "Hello"
+}
+
+Call it:
+Get-Greeting
+
+Function with parameter:
+function Get-ServerStatus {
+    param(
+        [string]$ServerName
+    )
+
+    "Checking $ServerName"
+}
+
+Call it:
+Get-ServerStatus -ServerName "srv1"
+
+========================================
+13) ADVANCED FUNCTION STYLE
+========================================
+function Get-ServerInfo {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ServerName
+    )
+
+    "Server is $ServerName"
+}
+
+========================================
+14) TRY / CATCH
+========================================
+try {
+    Get-Item "C:\NoSuchFile.txt" -ErrorAction Stop
+}
+catch {
+    $_.Exception.Message
+}
+
+Why use it:
+- file may not exist
+- API call may fail
+- remote system may be offline
+- permission denied
+
+========================================
+15) COMMON ERROR HANDLING PATTERN
+========================================
+try {
+    $result = Get-Service -Name w32time -ErrorAction Stop
+    $result
+}
+catch {
+    "Failed: $($_.Exception.Message)"
+}
+
+========================================
+16) CUSTOM OBJECTS
+========================================
+$result = [PSCustomObject]@{
+    Server  = "srv1"
+    Status  = "Online"
+    Checked = Get-Date
+}
+
+$result
+
+Why this matters:
+- great for reports
+- exports cleanly to CSV
+- keeps script output structured
+
+========================================
+17) EXPORTING DATA
+========================================
+CSV:
+Get-Process |
+Select-Object Name, Id, CPU |
+Export-Csv -Path "C:\Temp\processes.csv" -NoTypeInformation
+
+JSON:
+Get-Service |
+Select-Object Name, Status |
+ConvertTo-Json -Depth 3
+
+Text file:
+"Hello world" | Out-File "C:\Temp\test.txt"
+
+========================================
+18) IMPORTING DATA
+========================================
+CSV:
+$data = Import-Csv "C:\Temp\processes.csv"
+
+JSON:
+$json = Get-Content "C:\Temp\data.json" | ConvertFrom-Json
+
+========================================
+19) FILE / FOLDER COMMANDS
+========================================
+List files:
+Get-ChildItem
+Get-ChildItem C:\Temp
+
+Create folder:
+New-Item -Path "C:\Temp\Logs" -ItemType Directory
+
+Create file:
+New-Item -Path "C:\Temp\test.txt" -ItemType File
+
+Copy:
+Copy-Item "C:\Temp\test.txt" "C:\Temp\test2.txt"
+
+Move:
+Move-Item "C:\Temp\test.txt" "C:\Temp\Archive\"
+
+Delete:
+Remove-Item "C:\Temp\test.txt"
+
+========================================
+20) PROCESS / SERVICE COMMANDS
+========================================
+Processes:
+Get-Process
+Stop-Process -Name notepad
+
+Services:
+Get-Service
+Get-Service -Name w32time
+Start-Service -Name w32time
+Stop-Service -Name w32time
+Restart-Service -Name w32time
+
+========================================
+21) EVENT LOGS
+========================================
+Get-EventLog -LogName System -Newest 10
+
+Newer method:
+Get-WinEvent -LogName System -MaxEvents 10
+
+========================================
+22) REMOTING
+========================================
+One command:
+Invoke-Command -ComputerName srv1 -ScriptBlock {
+    Get-Service
+}
+
+Multiple servers:
+$servers = @("srv1","srv2")
+Invoke-Command -ComputerName $servers -ScriptBlock {
+    hostname
+    Get-Service | Select-Object -First 5
+}
+
+========================================
+23) API CALLS
+========================================
+Simple GET:
+$response = Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts"
+$response[0]
+
+Filter result:
+$response | Select-Object userId, id, title -First 5
+
+POST example:
+$body = @{
+    title  = "test title"
+    body   = "test body"
+    userId = 1
+}
+
+$response = Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" `
+    -Method Post `
+    -Body ($body | ConvertTo-Json) `
+    -ContentType "application/json"
+
+$response
+
+========================================
+24) COMMON SCRIPT STRUCTURE
+========================================
+param(
+    [string[]]$Servers
+)
+
+$results = @()
+
+foreach ($server in $Servers) {
+    try {
+        $os = Invoke-Command -ComputerName $server -ScriptBlock {
+            Get-CimInstance Win32_OperatingSystem
+        } -ErrorAction Stop
+
+        $results += [PSCustomObject]@{
+            Server = $server
+            OS     = $os.Caption
+            Status = "Success"
+        }
+    }
+    catch {
+        $results += [PSCustomObject]@{
+            Server = $server
+            OS     = ""
+            Status = $_.Exception.Message
+        }
+    }
+}
+
+$results | Export-Csv "C:\Temp\server_report.csv" -NoTypeInformation
+
+========================================
+25) USEFUL CMDLETS TO KNOW
+========================================
+Get-Command
+Get-Help
+Get-Member
+Get-ChildItem
+Select-Object
+Where-Object
+ForEach-Object
+Sort-Object
+Measure-Object
+Test-Connection
+Get-Service
+Get-Process
+Get-CimInstance
+Invoke-Command
+Invoke-RestMethod
+Export-Csv
+Import-Csv
+ConvertTo-Json
+ConvertFrom-Json
+
+========================================
+26) QUICK INTERVIEW TALKING POINTS
+========================================
+- PowerShell works with objects, which makes filtering and reporting easier
+- I use functions to make scripts modular and reusable
+- I use try/catch for reliability and cleaner error handling
+- I use PSCustomObject for structured output and reporting
+- I use foreach loops when working through server lists
+- I use the pipeline heavily for filtering, selecting, and transforming data
+- I use Invoke-RestMethod for API calls and automation
+
+========================================
+27) VERY COMMON PATTERN
+========================================
+$results = @()
+
+foreach ($item in $items) {
+    try {
+        $results += [PSCustomObject]@{
+            Name   = $item
+            Status = "Success"
+            Note   = ""
+        }
+    }
+    catch {
+        $results += [PSCustomObject]@{
+            Name   = $item
+            Status = "Failed"
+            Note   = $_.Exception.Message
+        }
+    }
+}
+
+$results
+
+========================================
+28) BEST PRACTICES
+========================================
+- Use clear function names
+- Use parameters instead of hardcoding values
+- Use try/catch for risky actions
+- Return structured objects, not messy text
+- Export results to CSV for reports
+- Test small pieces before building a large script
+- Add comments only where they help
+- Keep scripts modular
+
+========================================
+29) SIMPLE MENTAL MODEL
+========================================
+PowerShell flow:
+Get data -> Filter it -> Loop through it -> Handle errors -> Output report
+
+Example:
+Get-Service |
+Where-Object { $_.Status -eq "Running" } |
+Select-Object Name, Status
+
+========================================
+30) ONE SIMPLE LAB TO PRACTICE
+========================================
+1. Get all services
+2. Filter running services
+3. Select name and status
+4. Export to CSV
+
+Commands:
+$services = Get-Service
+$running = $services | Where-Object { $_.Status -eq "Running" }
+$report = $running | Select-Object Name, Status
+$report | Export-Csv "C:\Temp\running_services.csv" -NoTypeInformation
+
+========================================
+31) ANOTHER SIMPLE LAB FOR API
+========================================
+$response = Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/users"
+
+$response | Select-Object name, email, phone |
+Export-Csv "C:\Temp\api_users.csv" -NoTypeInformation
+
+========================================
+32) REMEMBER THESE TERMS
+========================================
+Cmdlet       = built-in PowerShell command
+Function     = your reusable code block
+Pipeline     = pass output from one command to another
+Object       = structured data with properties
+Parameter    = input to command/function
+PSCustomObject = custom structured output
+Try/Catch    = error handling
+ScriptBlock  = code inside { }
